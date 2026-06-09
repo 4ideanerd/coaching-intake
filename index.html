@@ -508,7 +508,7 @@
       <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
     </div>
     <h2 class="complete-title">That's it - thank you!</h2>
-    <p class="complete-sub">Your responses have been compiled for you below. Send the report straight to your coach with the button below, or copy and download it for your records.</p>
+    <p class="complete-sub">Your responses are compiled below. Pick how you'd like to send them — your answers are copied automatically, so just paste them into the email (Cmd+V on Mac, Ctrl+V on Windows) and hit send. You can also copy or download them for your records.</p>
     <div class="report-box" id="reportBox"></div>
     <p class="send-label">Send to your coach</p>
     <div class="btn-row">
@@ -839,49 +839,65 @@ function getPlainReport() {
   return text;
 }
 
-function getMailParts() {
+function getSubject() {
   const fullName = (clientName + ' ' + clientLastName).trim();
-  const subject = `Executive Coaching Intake Report - ${fullName}`;
-  const body = getPlainReport();
-  return { subject, body };
+  return `Executive Coaching Intake Report - ${fullName}`;
 }
 
-function emailReport() {
-  const { subject, body } = getMailParts();
-  const mailto = `mailto:${COACH_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailto;
-}
+// A short note that travels in the email body. The full report is placed on the
+// clipboard so it never overflows the email link (which is what caused the 400).
+const PASTE_NOTE = "Hi — my completed coaching intake is copied to my clipboard.\n\nI'll paste it right below this line (Cmd+V on Mac, Ctrl+V on Windows), then send.\n\n———————————————\n\n";
 
-function emailGmail() {
-  const { subject, body } = getMailParts();
-  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(COACH_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.open(url, '_blank');
-}
-
-function emailOutlook() {
-  const { subject, body } = getMailParts();
-  const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(COACH_EMAIL)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.open(url, '_blank');
-}
-
-async function copyReport() {
-  const text = getPlainReport();
+async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
-    const el = document.getElementById('copySuccess');
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
+    return true;
   } catch {
     const ta = document.createElement('textarea');
     ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand('copy');
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
-    const el = document.getElementById('copySuccess');
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
+    return ok;
   }
+}
+
+function flashStatus(msg) {
+  const el = document.getElementById('copySuccess');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+async function emailGmail() {
+  await copyToClipboard(getPlainReport());
+  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(COACH_EMAIL)}&su=${encodeURIComponent(getSubject())}&body=${encodeURIComponent(PASTE_NOTE)}`;
+  window.open(url, '_blank');
+  flashStatus('✓ Responses copied — paste into the email (Cmd+V / Ctrl+V), then send');
+}
+
+async function emailOutlook() {
+  await copyToClipboard(getPlainReport());
+  const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(COACH_EMAIL)}&subject=${encodeURIComponent(getSubject())}&body=${encodeURIComponent(PASTE_NOTE)}`;
+  window.open(url, '_blank');
+  flashStatus('✓ Responses copied — paste into the email (Cmd+V / Ctrl+V), then send');
+}
+
+async function emailReport() {
+  await copyToClipboard(getPlainReport());
+  const mailto = `mailto:${COACH_EMAIL}?subject=${encodeURIComponent(getSubject())}&body=${encodeURIComponent(PASTE_NOTE)}`;
+  flashStatus('✓ Responses copied — paste into the email (Cmd+V / Ctrl+V), then send');
+  window.location.href = mailto;
+}
+
+async function copyReport() {
+  const ok = await copyToClipboard(getPlainReport());
+  flashStatus(ok ? '✓ Copied to clipboard' : 'Copy didn\u2019t work — please use the Download button');
 }
 
 function downloadReport() {
