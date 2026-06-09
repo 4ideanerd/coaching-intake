@@ -442,6 +442,13 @@
     transition: opacity 0.3s;
   }
   .copy-success.show { opacity: 1; }
+  .send-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
 
   @media (max-width: 600px) {
     .chat-body, .chat-input-wrap, .chat-header { padding-left: 16px; padding-right: 16px; }
@@ -503,11 +510,23 @@
     <h2 class="complete-title">That's it - thank you!</h2>
     <p class="complete-sub">Your responses have been compiled for you below. Send the report straight to your coach with the button below, or copy and download it for your records.</p>
     <div class="report-box" id="reportBox"></div>
+    <p class="send-label">Send to your coach</p>
     <div class="btn-row">
+      <button class="btn-primary" onclick="emailGmail()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Gmail
+      </button>
+      <button class="btn-primary" onclick="emailOutlook()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Outlook
+      </button>
       <button class="btn-primary" onclick="emailReport()">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Email to Coach
+        Mail App
       </button>
+    </div>
+    <p class="send-label" style="margin-top:26px;">Or save for your records</p>
+    <div class="btn-row">
       <button class="btn-secondary" onclick="copyReport()">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         Copy Report
@@ -820,12 +839,29 @@ function getPlainReport() {
   return text;
 }
 
-function emailReport() {
+function getMailParts() {
   const fullName = (clientName + ' ' + clientLastName).trim();
   const subject = `Executive Coaching Intake Report - ${fullName}`;
   const body = getPlainReport();
+  return { subject, body };
+}
+
+function emailReport() {
+  const { subject, body } = getMailParts();
   const mailto = `mailto:${COACH_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailto;
+}
+
+function emailGmail() {
+  const { subject, body } = getMailParts();
+  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(COACH_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(url, '_blank');
+}
+
+function emailOutlook() {
+  const { subject, body } = getMailParts();
+  const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(COACH_EMAIL)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(url, '_blank');
 }
 
 async function copyReport() {
